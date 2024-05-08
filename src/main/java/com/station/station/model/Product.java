@@ -8,7 +8,8 @@ import lombok.*;
 @Setter
 @ToString
 public class Product {
-    Station station;
-    ProductTemplate productTemplate;
+    private int idProduct;
+    private Station station;
+    private ProductTemplate productTemplate;
 }
 

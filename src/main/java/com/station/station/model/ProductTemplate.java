@@ -8,8 +8,9 @@ import lombok.*;
 @Setter
 @ToString
 public class ProductTemplate {
+    private int idProductTemplate;
     private  String productName;
     private Double unitPrice;
-    private int eveporationRate;
+    private int evaporationRate;
 }
 

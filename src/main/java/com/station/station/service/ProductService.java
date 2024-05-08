@@ -3,53 +3,77 @@ package com.station.station.service;
 import com.station.station.Dbconnection.DatabaseConfing;
 import com.station.station.model.Product;
 import com.station.station.model.Station;
-import com.station.station.model.StockMouvement;
+import com.station.station.model.StockMovement;
 import com.station.station.repository.ProductRepository;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
 
 @Service
 public class ProductService implements ProductRepository {
+    private final StockMovement stockMovement;
+
+    public ProductService(StockMovement stockMovement) {
+        this.stockMovement = stockMovement;
+    }
+
     @Override
-    public void saveProduct(int id, Product product, Station station, StockMouvement stockMouvement) throws SQLException {
-        Statement statement = null;
+    public void saveProduct(int id, Product product, Station station, StockMovement stockMovement) throws SQLException {
         DatabaseConfing databaseConfing = new DatabaseConfing();
-        Connection conn = databaseConfing.getConnection();
+        Connection conn = null;
+        PreparedStatement supplyStatement = null;
+        PreparedStatement updateStatement = null;
 
         try {
+            conn = databaseConfing.getConnection();
+            conn.setAutoCommit(false);
+
             FonctionServiceUse functionUse = new FonctionServiceUse();
-            String timeNow = functionUse.readTimeNow(conn, "now()");
+            String timeNow = functionUse.readTimeNow(conn);
             int idProductTemplate = functionUse.readIdProductTemplate(conn, product.getProductTemplate().getProductName());
-            System.out.println(product.getProductTemplate().getProductName());
-            System.out.println(idProductTemplate);
             int idStation = functionUse.readIdStation(conn, station.getLocation());
             int idProduct = functionUse.readIdProduct(conn, idProductTemplate, idStation);
-            System.out.println(idProduct);
-            float quantityInStock = functionUse.readQuantityInStock(conn, idStation, idProduct);
+            BigDecimal quantityInStock = BigDecimal.valueOf(functionUse.readQuantityInStock(conn, idStation, idProduct));
             int idStock = functionUse.readIdStock(conn, idStation, idProduct);
-            System.out.println(idStock);
 
-            statement = conn.createStatement();
+            String supplyQuery = "INSERT INTO supply (id_station, id_product, quantity, Supply_date) VALUES (?, ?, ?, CURRENT_TIMESTAMP)";
+            String updateQuery = "UPDATE stock SET quantity_in_stock = ?, last_stock_update_date = ? WHERE id_stock = ?";
 
-            String query1 = String.format("INSERT INTO supply (id_station, id_product, quantity, Supply_date) VALUES ('%s', '%s','%s', CURRENT_TIMESTAMP);",idStation,idProduct,stockMouvement.getQuantity());
-            statement.executeUpdate(query1);
-            System.out.println("Supply ok ✔ ");
+            supplyStatement = conn.prepareStatement(supplyQuery);
+            supplyStatement.setInt(1, idStation);
+            supplyStatement.setInt(2, idProduct);
+            supplyStatement.setBigDecimal(3, stockMovement.getQuantity());
+            supplyStatement.executeUpdate();
 
-            float newQuantity = stockMouvement.getQuantity() + quantityInStock;
-            String query2 = String.format("UPDATE stock SET quantity_in_stock='%s', last_stock_update_date='%s' WHERE id_stock='%s';", newQuantity, timeNow, idStock);
-            statement.executeUpdate(query2);
-            System.out.println("Update quantity In stock and last stock update date ok ✔");
 
+            BigDecimal newQuantity = stockMovement.getQuantity().add(quantityInStock);
+
+            updateStatement = conn.prepareStatement(updateQuery);
+            updateStatement.setBigDecimal(1, newQuantity);
+            updateStatement.setString(2, timeNow);
+            updateStatement.setInt(3, idStock);
+            updateStatement.executeUpdate();
+
+            conn.commit();
+
+            System.out.println("Supply and stock update successful ✔");
         } catch (SQLException e) {
+            if (conn != null) {
+                conn.rollback();
+            }
             e.printStackTrace();
         } finally {
-            if (statement != null) {
-                statement.close();
+            if (updateStatement != null) {
+                updateStatement.close();
+            }
+            if (supplyStatement != null) {
+                supplyStatement.close();
             }
             if (conn != null) {
+                conn.setAutoCommit(true);
                 conn.close();
             }
         }

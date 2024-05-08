@@ -1,5 +1,6 @@
 package com.station.station.model;
 
+import com.station.station.model.enums.System;
 import lombok.*;
 
 @AllArgsConstructor
@@ -8,7 +9,8 @@ import lombok.*;
 @Setter
 @ToString
 public class Station {
-    private String stationName;
+    private int id_station;
+    private String station_name;
     private String location;
-    private String system;
+    private System system;
 }
