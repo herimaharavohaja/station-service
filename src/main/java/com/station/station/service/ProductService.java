@@ -39,7 +39,7 @@ public class ProductService implements ProductRepository {
             BigDecimal quantityInStock = BigDecimal.valueOf(functionUse.readQuantityInStock(conn, idStation, idProduct));
             int idStock = functionUse.readIdStock(conn, idStation, idProduct);
 
-            String supplyQuery = "INSERT INTO supply (id_station, id_product, quantity, Supply_date) VALUES (?, ?, ?, CURRENT_TIMESTAMP)";
+            String supplyQuery = "INSERT INTO stock_movement (id_station, id_product, quantity, date_stock) VALUES (?, ?, ?, CURRENT_TIMESTAMP)";
             String updateQuery = "UPDATE stock SET quantity_in_stock = ?, last_stock_update_date = ? WHERE id_stock = ?";
 
             supplyStatement = conn.prepareStatement(supplyQuery);
@@ -59,7 +59,7 @@ public class ProductService implements ProductRepository {
 
             conn.commit();
 
-            System.out.println("Supply and stock update successful ✔");
+            System.out.println("Stock movement  and stock update successful ✔");
         } catch (SQLException e) {
             if (conn != null) {
                 conn.rollback();
