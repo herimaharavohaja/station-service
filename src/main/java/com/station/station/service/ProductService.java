@@ -22,13 +22,13 @@ public class ProductService implements ProductRepository {
 
     @Override
     public void saveProduct(int id, Product product, Station station, StockMovement stockMovement) throws SQLException {
-        DatabaseConfing databaseConfing = new DatabaseConfing();
+        DatabaseConfing databaseConfig = new DatabaseConfing();
         Connection conn = null;
         PreparedStatement supplyStatement = null;
         PreparedStatement updateStatement = null;
 
         try {
-            conn = databaseConfing.getConnection();
+            conn = databaseConfig.getConnection();
             conn.setAutoCommit(false);
 
             FonctionServiceUse functionUse = new FonctionServiceUse();
@@ -40,14 +40,13 @@ public class ProductService implements ProductRepository {
             int idStock = functionUse.readIdStock(conn, idStation, idProduct);
 
             String supplyQuery = "INSERT INTO stock_movement (id_station, id_product, quantity, date_stock) VALUES (?, ?, ?, CURRENT_TIMESTAMP)";
-            String updateQuery = "UPDATE stock SET quantity_in_stock = ?, last_stock_update_date = ? WHERE id_stock = ?";
+            String updateQuery = "UPDATE stock_movement SET quantity = ?, date_stock = ? WHERE id_stock_movement = ?";
 
             supplyStatement = conn.prepareStatement(supplyQuery);
             supplyStatement.setInt(1, idStation);
             supplyStatement.setInt(2, idProduct);
             supplyStatement.setBigDecimal(3, stockMovement.getQuantity());
             supplyStatement.executeUpdate();
-
 
             BigDecimal newQuantity = stockMovement.getQuantity().add(quantityInStock);
 
@@ -59,7 +58,7 @@ public class ProductService implements ProductRepository {
 
             conn.commit();
 
-            System.out.println("Stock movement  and stock update successful ✔");
+            System.out.println("Stock movement and stock update successful ✔");
         } catch (SQLException e) {
             if (conn != null) {
                 conn.rollback();
